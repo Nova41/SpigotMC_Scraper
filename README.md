@@ -1,7 +1,7 @@
 # SpigotMC_Scraper
 Collections of tools used to scrape the SpigotMC forum https://www.spigotmc.org/
 
-# forum-page-json-parser.py
+# forum_page_json_parser.py
 
     usage: forum_page_json_parser.py [-h] -i INPUT_FILE_NAME [-o OUTPUT_FILE_NAME]
                                      [-O] [-ji JSON_DUMP_INDENT] [-is]
