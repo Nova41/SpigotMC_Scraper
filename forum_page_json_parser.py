@@ -2,7 +2,14 @@
   Parse a spigotmc forum page into a JSON string.
   Author: Nova41 (https://github.com/Nova41)
   Date created: 6/7/2020
-  Version: 1.0 (6/7/2020)
+  Version: 1.1 (6/8/2020)
+
+  Changelog:
+  # 1.1 - 6/8/2020
+    - Added 'sticky' and 'locked' status parsing.
+    - Added an argument for ignoring sticky threads.
+    - Changed dashes '-' in the file name to underline '_' for module import.
+
 '''
 
 import argparse
@@ -13,12 +20,13 @@ import json
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
-def parse_thread_list(content, json_dump_indent):
+def parse_thread_list(content, json_dump_indent, ignore_sticky_threads):
   """Parse a spigotmc forum page into a JSON string.
 
   Args:
       content: The html string of the page.
       json_dump_indent: The identation of the dumped json string. Set to None for no identation.
+      ignore_sticky_threads: Whether to ignore sticky threads.
 
   Returns:
       The parsed JSON object with specified indentation.
@@ -41,7 +49,7 @@ def parse_thread_list(content, json_dump_indent):
       'views:':    locale.atoi(tag_stats.find('dl', class_='minor').find('dd').string),
       'lastreply': {
         'user':      tag_lastpost.dl.dt.a.string,
-      }
+      },
     }
 
     # if the thread has a tag
@@ -75,6 +83,18 @@ def parse_thread_list(content, json_dump_indent):
         'timestring': tag_lastpost.dl.dd.a.span['title'].split(' at ')[1]
       }
 
+    # if the thread is sticky and/or locked
+    tag_icon_key = tag_main.div.find('div', class_='iconKey')
+    if tag_icon_key is not None:
+      thread['sticky'] = tag_icon_key.find('span', class_='sticky') is not None
+      thread['locked'] = tag_icon_key.find('span', class_='locked') is not None
+    else:
+      thread['sticky'] = False
+      thread['locked'] = False
+
+    if thread['sticky'] and ignore_sticky_threads:
+      continue
+
     threads.append(thread)
 
   return json.dumps(threads, indent=json_dump_indent)
@@ -85,6 +105,7 @@ if __name__ == "__main__":
   parser.add_argument('-o', dest='output_file_name', help="File name of the output file")
   parser.add_argument('-O', dest='print_output', action='store_true', help="Print the output")
   parser.add_argument('-ji', default=2, type=int, dest='json_dump_indent', help="Set the identation of dumped json string (-1 for no indentation). Default: 2")
+  parser.add_argument('-is', '--ignore-sticky', default=False, dest='ignore_sticky_threads', action='store_true', help="Ignore sticky threads. Off by default.")
   if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
@@ -98,9 +119,9 @@ if __name__ == "__main__":
 
   with input_file:
     if (args.json_dump_indent >= 0):
-      parsed_json_string = parse_thread_list(input_file.read(), args.json_dump_indent)
+      parsed_json_string = parse_thread_list(input_file.read(), args.json_dump_indent, args.ignore_sticky_threads)
     else:
-      parsed_json_string = parse_thread_list(input_file.read(), None)
+      parsed_json_string = parse_thread_list(input_file.read(), None, args.ignore_sticky_threads)
 
   if args.print_output:
     print(parsed_json_string)
